@@ -52,7 +52,6 @@ export const VercelDialog: React.FC<VercelDialogProps> = ({ isOpen, onClose, fil
       const vercelFiles: any[] = projectFiles.map(file => {
         let content = file.content;
         
-        // Auto-fix para index.html: Adiciona tratamento de erro e garante que o fundo não seja apenas "preto" sem conteúdo
         if (file.name === 'index.html') {
           const debugScript = `
             <script>
@@ -79,7 +78,6 @@ export const VercelDialog: React.FC<VercelDialogProps> = ({ isOpen, onClose, fil
 
       setStep('Configurando Roteamento Cloud...');
 
-      // vercel.json Robusto
       const vercelConfig = isPython ? {
         version: 2,
         builds: [
@@ -119,7 +117,7 @@ export const VercelDialog: React.FC<VercelDialogProps> = ({ isOpen, onClose, fil
           name: vProjectName,
           files: vercelFiles,
           projectSettings: {
-            framework: null, // Força modo estático
+            framework: null,
             buildCommand: null,
             outputDirectory: null,
             installCommand: isPython ? "pip install -r requirements.txt" : null
@@ -130,7 +128,19 @@ export const VercelDialog: React.FC<VercelDialogProps> = ({ isOpen, onClose, fil
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error?.message || 'A Vercel rejeitou os arquivos. Verifique se o nome do projeto é único.');
+        let message = 'A Vercel rejeitou os arquivos.';
+        
+        if (response.status === 401 || response.status === 403) {
+          message = 'Token de acesso inválido ou sem permissões. Verifique se o seu token tem permissão de "Deployment".';
+        } else if (response.status === 400) {
+          message = `Erro na requisição: ${data.error?.message || 'Verifique o nome do projeto e os arquivos.'}`;
+        } else if (response.status === 409) {
+          message = 'Já existe um deploy em andamento ou o nome do projeto está em conflito.';
+        } else if (data.error?.message) {
+          message = data.error.message;
+        }
+
+        throw new Error(message);
       }
 
       localStorage.setItem('dujao_vercel_token', token);
@@ -154,7 +164,6 @@ export const VercelDialog: React.FC<VercelDialogProps> = ({ isOpen, onClose, fil
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-950/98 backdrop-blur-2xl">
       <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-[3rem] shadow-[0_0_150px_rgba(0,0,0,1)] overflow-hidden animate-in fade-in zoom-in duration-500">
         
-        {/* Header Elite */}
         <div className="p-10 border-b border-slate-800 flex items-center justify-between bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
           <div className="flex items-center gap-5">
             <div className="w-14 h-14 bg-white rounded-[1.25rem] flex items-center justify-center shadow-[0_0_40px_rgba(255,255,255,0.15)] transform -rotate-3">
@@ -199,8 +208,11 @@ export const VercelDialog: React.FC<VercelDialogProps> = ({ isOpen, onClose, fil
           ) : (
             <>
               {status === 'error' && (
-                <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-3xl text-red-400 text-[11px] font-black uppercase tracking-widest text-center leading-relaxed">
-                  {errorMsg}
+                <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-3xl text-red-400 text-[11px] font-black uppercase tracking-widest text-center leading-relaxed animate-shake">
+                  <div className="flex flex-col gap-2">
+                    <span className="text-red-300">⚠️ Erro Detectado:</span>
+                    <span>{errorMsg}</span>
+                  </div>
                 </div>
               )}
 

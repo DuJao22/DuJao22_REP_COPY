@@ -37,7 +37,9 @@ CONTEÚDO COMPLETO
 @@@ENDFILE@@@`;
 
 export async function askAI(prompt: string, project: Project | null, agent?: AgentType) {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  // Inicialização segura dentro da função para evitar crash no load do módulo
+  const apiKey = process?.env?.API_KEY || "";
+  const ai = new GoogleGenAI({ apiKey });
   const model = 'gemini-3-pro-preview';
   
   let context = "Nenhum projeto ativo. Inicie um novo planejamento e implementação.";

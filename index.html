@@ -9,6 +9,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      // Shim crítico para evitar erro "process is not defined" em produção
+      window.process = window.process || { env: { NODE_ENV: 'production' } };
+    </script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -34,6 +38,26 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #475569;
         }
+        /* Estilo do Loader Inicial */
+        #loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: #0f172a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.4s ease;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(59, 130, 246, 0.1);
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 <script type="importmap">
 {
@@ -42,14 +66,34 @@
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
     "react/": "https://esm.sh/react@^19.2.3/",
     "react": "https://esm.sh/react@^19.2.3",
+    "react-dom": "https://esm.sh/react-dom@^19.2.3",
     "jszip": "https://esm.sh/jszip@3.10.1"
   }
 }
 </script>
 </head>
 <body>
+    <div id="loading-overlay">
+        <div style="text-align: center;">
+            <div class="spinner" style="margin: 0 auto 16px;"></div>
+            <div style="font-size: 10px; font-weight: 900; letter-spacing: 0.3em; color: #3b82f6; text-transform: uppercase;">Dujão 22 Engine</div>
+        </div>
+    </div>
+
     <div id="root"></div>
-    <!-- Script essencial para carregar a aplicação React -->
     <script type="module" src="./index.tsx"></script>
+    
+    <script>
+      // Remove o loader assim que a página terminar de carregar os recursos básicos
+      window.addEventListener('load', () => {
+        setTimeout(() => {
+          const loader = document.getElementById('loading-overlay');
+          if (loader) {
+            loader.style.opacity = '0';
+            setTimeout(() => loader.remove(), 400);
+          }
+        }, 800);
+      });
+    </script>
 </body>
 </html>
