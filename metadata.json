@@ -1,0 +1,8 @@
+{
+  "name": "Dujão 22 – Plataforma de Desenvolvimento Inteligente",
+  "description": "Uma plataforma de desenvolvimento web inspirada no Replit, com editores de código, preview em tempo real e dois agentes de IA especializados (Arquiteto e Desenvolvedor) para criação de sistemas completos.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
