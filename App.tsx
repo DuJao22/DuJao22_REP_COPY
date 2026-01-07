@@ -10,6 +10,7 @@ import { Preview } from './components/Preview';
 import { Terminal } from './components/Terminal';
 import { AdminSettings } from './components/AdminSettings';
 import { GithubDialog } from './components/GithubDialog';
+import { VercelDialog } from './components/VercelDialog';
 import { Project, ProjectFile, FileType, User } from './types';
 import { INITIAL_FILES } from './constants';
 import { askAI } from './services/geminiService';
@@ -27,6 +28,7 @@ const App: React.FC = () => {
   const [viewMode, setViewMode] = useState<'editor' | 'preview' | 'split'>('split');
   const [showSettings, setShowSettings] = useState(false);
   const [showGithub, setShowGithub] = useState(false);
+  const [showVercel, setShowVercel] = useState(false);
   const [terminalLogs, setTerminalLogs] = useState<{type: 'info' | 'error' | 'success', message: string}[]>([]);
   const [isFixing, setIsFixing] = useState(false);
   const [showChat, setShowChat] = useState(true);
@@ -92,11 +94,12 @@ const App: React.FC = () => {
     if (!user) return;
     const updatedUser = { ...user, github: data || undefined };
     setUser(updatedUser);
-    if (data) {
-      localStorage.setItem('dujao_github_pat', data.token);
-    } else {
-      localStorage.removeItem('dujao_github_pat');
-    }
+  };
+
+  const handleVercelUpdate = (token: string) => {
+    if (!user) return;
+    const updatedUser = { ...user, vercel: { token } };
+    setUser(updatedUser);
   };
 
   const handleAutoFix = async () => {
@@ -238,6 +241,7 @@ const App: React.FC = () => {
             onRun={handleRun} 
             onDownloadZip={handleDownloadZip}
             onGithubCommit={() => setShowGithub(true)}
+            onVercelDeploy={() => setShowVercel(true)}
           >
             <div className="flex-none flex flex-col w-64 bg-slate-900 border-r border-slate-800">
               <button 
@@ -323,14 +327,24 @@ const App: React.FC = () => {
       <AdminSettings isOpen={showSettings} onClose={() => setShowSettings(false)} />
       
       {activeProject && (
-        <GithubDialog 
-          isOpen={showGithub} 
-          onClose={() => setShowGithub(false)} 
-          files={activeProject.files}
-          projectName={activeProject.name}
-          onGithubUpdate={handleGithubUpdate}
-          savedGithub={user.github}
-        />
+        <>
+          <GithubDialog 
+            isOpen={showGithub} 
+            onClose={() => setShowGithub(false)} 
+            files={activeProject.files}
+            projectName={activeProject.name}
+            onGithubUpdate={handleGithubUpdate}
+            savedGithub={user.github}
+          />
+          <VercelDialog
+            isOpen={showVercel}
+            onClose={() => setShowVercel(false)}
+            files={activeProject.files}
+            projectName={activeProject.name}
+            onVercelUpdate={handleVercelUpdate}
+            savedToken={user.vercel?.token}
+          />
+        </>
       )}
     </div>
   );

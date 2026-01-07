@@ -26,6 +26,10 @@ export interface User {
     avatar_url: string;
     token: string;
   };
+  vercel?: {
+    token: string;
+    teamId?: string;
+  };
 }
 
 export interface ProjectState {
