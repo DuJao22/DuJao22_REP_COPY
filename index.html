@@ -3,7 +3,9 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <title>Dujão 22 – Digital Solutions</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -12,6 +14,15 @@
     <script>
       // Shim crítico para evitar erro "process is not defined" em produção
       window.process = window.process || { env: { NODE_ENV: 'production' } };
+      
+      // Fallback para remover o loader caso o evento 'load' falhe ou demore demais
+      setTimeout(() => {
+        const loader = document.getElementById('loading-overlay');
+        if (loader) {
+          loader.style.opacity = '0';
+          setTimeout(() => loader.remove(), 400);
+        }
+      }, 3500);
     </script>
     <style>
         body {
@@ -20,25 +31,22 @@
             color: #f8fafc;
             margin: 0;
             overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
         }
         .code-font {
             font-family: 'Fira Code', monospace;
         }
         ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
+            width: 4px;
+            height: 4px;
         }
         ::-webkit-scrollbar-track {
             background: #1e293b;
         }
         ::-webkit-scrollbar-thumb {
             background: #334155;
-            border-radius: 4px;
+            border-radius: 2px;
         }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #475569;
-        }
-        /* Estilo do Loader Inicial */
         #loading-overlay {
             position: fixed;
             inset: 0;
@@ -76,7 +84,7 @@
     <div id="loading-overlay">
         <div style="text-align: center;">
             <div class="spinner" style="margin: 0 auto 16px;"></div>
-            <div style="font-size: 10px; font-weight: 900; letter-spacing: 0.3em; color: #3b82f6; text-transform: uppercase;">Dujão 22 Engine</div>
+            <div style="font-size: 10px; font-weight: 900; letter-spacing: 0.3em; color: #3b82f6; text-transform: uppercase;">Iniciando Dujão 22</div>
         </div>
     </div>
 
@@ -84,15 +92,12 @@
     <script type="module" src="./index.tsx"></script>
     
     <script>
-      // Remove o loader assim que a página terminar de carregar os recursos básicos
       window.addEventListener('load', () => {
-        setTimeout(() => {
-          const loader = document.getElementById('loading-overlay');
-          if (loader) {
-            loader.style.opacity = '0';
-            setTimeout(() => loader.remove(), 400);
-          }
-        }, 800);
+        const loader = document.getElementById('loading-overlay');
+        if (loader) {
+          loader.style.opacity = '0';
+          setTimeout(() => loader.remove(), 400);
+        }
       });
     </script>
 </body>
