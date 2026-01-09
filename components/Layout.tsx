@@ -7,9 +7,17 @@ interface LayoutProps {
   onDownloadZip?: () => void;
   onGithubCommit?: () => void;
   onVercelDeploy?: () => void;
+  onOpenSettings?: () => void;
 }
 
-export const Layout: React.FC<LayoutProps> = ({ children, onRun, onDownloadZip, onGithubCommit, onVercelDeploy }) => {
+export const Layout: React.FC<LayoutProps> = ({ 
+  children, 
+  onRun, 
+  onDownloadZip, 
+  onGithubCommit, 
+  onVercelDeploy,
+  onOpenSettings 
+}) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
@@ -33,11 +41,23 @@ export const Layout: React.FC<LayoutProps> = ({ children, onRun, onDownloadZip, 
             <div className="w-px h-4 bg-slate-700 mx-1"></div>
             <button onClick={onVercelDeploy} className="px-3 py-1.5 hover:bg-slate-700 rounded-md text-[10px] font-black uppercase tracking-wider transition-all">VERCEL</button>
           </div>
+          
+          <button 
+            onClick={onOpenSettings}
+            className="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-all border border-slate-700/50"
+            title="Configurações e API Key"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+          </button>
+
           <button onClick={onRun} className="px-5 py-1.5 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-xs font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 active:scale-95 shadow-xl shadow-emerald-900/30">RUN</button>
         </div>
 
         {/* Mobile Menu Toggle */}
         <div className="flex md:hidden items-center gap-2">
+           <button onClick={onOpenSettings} className="p-2 bg-slate-800 rounded-lg text-slate-400">
+             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+           </button>
            <button onClick={onRun} className="p-2 bg-emerald-600 rounded-lg shadow-lg active:scale-90">
              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>
            </button>

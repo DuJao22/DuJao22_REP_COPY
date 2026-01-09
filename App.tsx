@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Auth } from './components/Auth';
 import { Dashboard } from './components/Dashboard';
@@ -89,7 +90,6 @@ const App: React.FC = () => {
     addLog('info', '[ZIP] Empacotando arquitetura...');
     try {
       const zip = new JSZip();
-      // Fix: Explicitly cast entry value to ProjectFile to resolve "Property 'content' does not exist on type 'unknown'"
       Object.entries(activeProject.files).forEach(([path, file]) => {
         zip.file(path, (file as ProjectFile).content);
       });
@@ -196,6 +196,7 @@ const App: React.FC = () => {
             onDownloadZip={handleDownloadZip}
             onGithubCommit={() => setShowGithub(true)}
             onVercelDeploy={() => setShowVercel(true)}
+            onOpenSettings={() => setShowSettings(true)}
           >
             {/* Project Integrity Bar */}
             <div className="absolute top-0 left-0 right-0 h-1 bg-slate-900 z-[110]">
