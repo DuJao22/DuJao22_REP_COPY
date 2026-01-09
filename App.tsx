@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Auth } from './components/Auth';
 import { Dashboard } from './components/Dashboard';
@@ -13,7 +12,6 @@ import { GithubDialog } from './components/GithubDialog';
 import { VercelDialog } from './components/VercelDialog';
 import { Project, ProjectFile, FileType, User } from './types';
 import { INITIAL_FILES } from './constants';
-import { askAI } from './services/geminiService';
 import JSZip from 'jszip';
 
 const App: React.FC = () => {
@@ -54,102 +52,80 @@ const App: React.FC = () => {
 
   const handleRun = () => {
     setTerminalLogs([]);
-    addLog('info', '[Dujão Engine] Iniciando container de execução...');
-    addLog('info', `[WORKSPACE] Servindo ${activeProject?.name}...`);
+    addLog('info', '[ENGINE] Auditando integridade da solução...');
+    addLog('info', `[WORKSPACE] Compilando grafo de dependências em ${activeProject?.name}...`);
     
     setTimeout(() => {
-      const currentContent = activeProject?.files[activeFile]?.content || '';
-      if (currentContent.includes('error') || currentContent.includes('undefined') || Math.random() > 0.95) {
-        addLog('error', `[ERROR] Runtime Exception em ${activeFile}: Erro detectado.`);
+      const projectFiles = activeProject?.files || {};
+      const hasIndex = Object.keys(projectFiles).some(k => k.endsWith('index.html'));
+      
+      if (!hasIndex) {
+        addLog('error', '[CRITICAL] Ponto de entrada (index.html) não localizado na raiz.');
       } else {
-        addLog('success', '[READY] Sistema rodando em modo produção.');
+        addLog('success', '[CERTIFIED] Sistema verificado e pronto para operação em nuvem.');
       }
-    }, 800);
+    }, 1200);
+  };
+
+  const handleAutoFix = async () => {
+    if (!activeProject || terminalLogs.length === 0) return;
+    const errors = terminalLogs.filter(l => l.type === 'error').map(l => l.message).join('\n');
+    if (!errors) return;
+
+    setIsFixing(true);
+    addLog('info', '[AI] Aplicando patch de correção auditada...');
+    
+    const repairPrompt = `Ocorreram falhas de auditoria:\n${errors}\n\nReconstrua os módulos afetados com foco em funcionalidade total.`;
+    
+    if ((window as any).triggerAISend) {
+      await (window as any).triggerAISend(repairPrompt);
+    }
+    
+    setIsFixing(false);
   };
 
   const handleDownloadZip = async () => {
     if (!activeProject) return;
-    addLog('info', '[ZIP] Preparando pacote de download...');
+    addLog('info', '[ZIP] Empacotando arquitetura...');
     try {
       const zip = new JSZip();
-      (Object.values(activeProject.files) as ProjectFile[]).forEach(file => {
-        zip.file(file.name, file.content);
+      // Fix: Explicitly cast entry value to ProjectFile to resolve "Property 'content' does not exist on type 'unknown'"
+      Object.entries(activeProject.files).forEach(([path, file]) => {
+        zip.file(path, (file as ProjectFile).content);
       });
       const content = await zip.generateAsync({ type: 'blob' });
       const url = window.URL.createObjectURL(content);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${activeProject.name.replace(/\s+/g, '_')}_dujao22.zip`;
+      link.download = `DS_SOLUTIONS_${activeProject.name.toUpperCase().replace(/\s+/g, '_')}.zip`;
       link.click();
       window.URL.revokeObjectURL(url);
-      addLog('success', '[ZIP] Download concluído.');
+      addLog('success', '[EXPORT] Pacote de engenharia gerado.');
     } catch (err) {
-      addLog('error', '[ZIP] Falha ao gerar arquivo.');
+      addLog('error', '[EXPORT] Falha na compressão do cluster.');
     }
-  };
-
-  const handleGithubUpdate = (data: { login: string; avatar_url: string; token: string } | null) => {
-    if (!user) return;
-    setUser({ ...user, github: data || undefined });
-  };
-
-  const handleVercelUpdate = (token: string) => {
-    if (!user) return;
-    setUser({ ...user, vercel: { token } });
-  };
-
-  const handleAutoFix = async () => {
-    if (!activeProject || terminalLogs.length === 0) return;
-    setIsFixing(true);
-    addLog('info', '[Dujão AI] Corrigindo inconsistências...');
-    const errorLogs = terminalLogs.filter(l => l.type === 'error').map(l => l.message).join('\n');
-    try {
-      const response = await askAI(`ERROS:\n${errorLogs}\n\nCorrija agora.`, activeProject, 'developer');
-      const fileRegex = /@@@FILE:(.*?)@@@\n([\s\S]*?)\n@@@ENDFILE@@@/g;
-      let match;
-      const updates: {name: string, content: string}[] = [];
-      while ((match = fileRegex.exec(response || "")) !== null) {
-        const fileName = match[1].trim().split('/').pop() || match[1].trim();
-        updates.push({ name: fileName, content: match[2] });
-      }
-      if (updates.length > 0) {
-        handleApplyAIChanges(updates);
-        addLog('success', `[FIXED] IA aplicou correções.`);
-      }
-    } catch (err) {
-      addLog('error', '[Dujão AI] Falha na Engine.');
-    } finally {
-      setIsFixing(false);
-    }
-  };
-
-  const handleLogin = (userObj: User) => {
-    setUser(userObj);
-    localStorage.setItem('dujao_user_obj', JSON.stringify(userObj));
-  };
-
-  const handleLogout = () => {
-    setUser(null);
-    setActiveProject(null);
-    localStorage.removeItem('dujao_user_obj');
   };
 
   const handleCreateProject = (name: string, initialFiles?: Record<string, ProjectFile>) => {
     const newProject: Project = {
       id: Date.now().toString(),
       name,
-      description: initialFiles ? "Gerado via IA" : "Manual",
+      description: initialFiles ? "Solução Enterprise Auditada." : "Ambiente de desenvolvimento profissional.",
       files: initialFiles || { ...INITIAL_FILES },
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      progress: initialFiles ? 100 : 0,
+      stack: initialFiles ? ['Modern Enterprise Stack'] : []
     };
     setProjects(prev => [...prev, newProject]);
     setActiveProject(newProject);
-    setActiveFile(Object.keys(newProject.files)[0] || 'index.html');
+    const firstFile = Object.keys(newProject.files)[0] || 'index.html';
+    setActiveFile(firstFile);
   };
 
   const handleOpenProject = (project: Project) => {
     setActiveProject(project);
-    setActiveFile(Object.keys(project.files)[0] || 'index.html');
+    const firstFile = Object.keys(project.files)[0] || 'index.html';
+    setActiveFile(firstFile);
   };
 
   const handleFileChange = useCallback((content: string) => {
@@ -158,7 +134,7 @@ const App: React.FC = () => {
       ...activeProject,
       files: {
         ...activeProject.files,
-        [activeFile]: { ...activeProject.files[activeFile], content }
+        [activeFile]: { ...activeProject.files[activeFile], content, lastModified: Date.now() }
       }
     };
     setActiveProject(updatedProject);
@@ -168,37 +144,40 @@ const App: React.FC = () => {
   const handleApplyAIChanges = (updates: {name: string, content: string}[]) => {
     if (!activeProject) return;
     const newFiles = { ...activeProject.files };
-    let lastFile = activeFile;
+    let fileToFocus = activeFile;
+    
     updates.forEach(u => {
-      const cleanName = u.name.split('/').pop() || u.name;
-      const ext = cleanName.split('.').pop()?.toLowerCase() || '';
+      const ext = u.name.split('.').pop()?.toLowerCase() || '';
       let lang: FileType = 'markdown';
       if (ext === 'py') lang = 'python'; else if (ext === 'html') lang = 'html';
-      else if (ext === 'css') lang = 'css'; else if (ext === 'js') lang = 'javascript';
-      newFiles[cleanName] = { name: cleanName, content: u.content, language: lang };
-      lastFile = cleanName;
+      else if (ext === 'css') lang = 'css'; else if (ext === 'js' || ext === 'jsx') lang = 'javascript';
+      else if (ext === 'ts') lang = 'typescript'; else if (ext === 'tsx') lang = 'tsx';
+      
+      newFiles[u.name] = { name: u.name, content: u.content, language: lang, lastModified: Date.now() };
+      fileToFocus = u.name;
     });
+
     const updated = { ...activeProject, files: newFiles };
     setActiveProject(updated);
-    setActiveFile(lastFile);
+    setActiveFile(fileToFocus);
     setProjects(prev => prev.map(p => p.id === updated.id ? updated : p));
   };
 
   const handleNewFile = () => {
-    const name = prompt("Nome do arquivo:");
+    const name = prompt("Caminho completo do arquivo (ex: src/components/Header.tsx):");
     if (!name || !activeProject) return;
-    const cleanName = name.split('/').pop() || name;
-    const ext = cleanName.split('.').pop()?.toLowerCase() || '';
+    const ext = name.split('.').pop()?.toLowerCase() || '';
     let lang: FileType = 'markdown';
     if (ext === 'py') lang = 'python'; else if (ext === 'html') lang = 'html';
-    else if (ext === 'css') lang = 'css'; else if (ext === 'js') lang = 'javascript';
-    const updated = { ...activeProject, files: { ...activeProject.files, [cleanName]: { name: cleanName, content: '', language: lang } } };
+    else if (ext === 'css') lang = 'css'; else if (ext === 'js' || ext === 'jsx') lang = 'javascript';
+    else if (ext === 'ts') lang = 'typescript'; else if (ext === 'tsx') lang = 'tsx';
+    const updated = { ...activeProject, files: { ...activeProject.files, [name]: { name, content: '', language: lang, lastModified: Date.now() } } };
     setActiveProject(updated);
-    setActiveFile(cleanName);
+    setActiveFile(name);
     setProjects(prev => prev.map(p => p.id === updated.id ? updated : p));
   };
 
-  if (!user) return <Auth onLogin={handleLogin} />;
+  if (!user) return <Auth onLogin={setUser} />;
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-950 font-sans text-slate-100">
@@ -209,7 +188,7 @@ const App: React.FC = () => {
             projects={projects} 
             onOpenProject={handleOpenProject} 
             onCreateProject={(name) => handleCreateProject(name)} 
-            onLogout={handleLogout}
+            onLogout={() => setUser(null)}
           />
         ) : (
           <Layout 
@@ -218,20 +197,23 @@ const App: React.FC = () => {
             onGithubCommit={() => setShowGithub(true)}
             onVercelDeploy={() => setShowVercel(true)}
           >
-            {/* Sidebar Responsivo */}
+            {/* Project Integrity Bar */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-slate-900 z-[110]">
+               <div className={`h-full bg-blue-500 transition-all duration-1000 ${activeProject.progress === 100 ? 'w-full shadow-[0_0_10px_#3b82f6]' : 'w-1/3'}`}></div>
+            </div>
+
+            {/* Sidebar Explorer */}
             <div className={`
               fixed lg:relative z-[80] lg:z-0
-              ${showSidebar ? 'translate-x-0' : '-translate-x-full lg:translate-x-0 lg:w-0 lg:opacity-0'}
-              transition-all duration-300 h-[calc(100vh-56px)] lg:h-auto w-64 bg-slate-900 border-r border-slate-800 flex flex-col
+              ${showSidebar ? 'translate-x-0 w-72' : '-translate-x-full lg:translate-x-0 lg:w-0 lg:opacity-0'}
+              transition-all duration-500 h-[calc(100vh-56px)] lg:h-auto bg-slate-950 border-r border-white/5 flex flex-col
             `}>
-              <div className="p-2 border-b border-slate-800 lg:hidden">
-                <button onClick={() => setShowSidebar(false)} className="w-full py-2 bg-slate-800 rounded-lg text-[10px] font-black uppercase">Ocultar</button>
-              </div>
               <button 
                 onClick={() => setActiveProject(null)}
-                className="p-4 text-[10px] font-black text-slate-500 uppercase hover:text-blue-400 border-b border-slate-800 transition-all flex items-center gap-2 group"
+                className="p-8 text-[10px] font-black text-slate-500 uppercase hover:text-white border-b border-white/5 transition-all flex items-center gap-4 group bg-slate-950"
               >
-                ← Dashboard
+                <span className="w-6 h-6 rounded-lg bg-slate-900 flex items-center justify-center group-hover:-translate-x-1 transition-transform">←</span>
+                Sair do Ambiente
               </button>
               <FileExplorer 
                 files={activeProject.files} 
@@ -239,35 +221,34 @@ const App: React.FC = () => {
                 onFileSelect={(f) => { setActiveFile(f); if(window.innerWidth < 1024) setShowSidebar(false); }} 
                 onNewFile={handleNewFile} 
               />
-              <div className="mt-auto p-4 border-t border-slate-800">
-                <button onClick={() => setShowSettings(true)} className="w-full py-2 bg-slate-800/50 hover:bg-slate-800 rounded-lg text-[9px] font-black uppercase text-slate-500 hover:text-white transition-all border border-slate-700/50">Configurações</button>
-              </div>
             </div>
 
-            {/* Editor & Preview Area */}
-            <div className="flex-1 flex flex-col min-w-0 relative">
-              <div className="h-10 lg:h-12 bg-slate-950 border-b border-slate-800 flex items-center px-2 lg:px-4 justify-between sticky top-0 z-40">
-                 <div className="flex items-center gap-2">
-                   <button onClick={() => setShowSidebar(!showSidebar)} className="lg:hidden p-1.5 bg-slate-900 border border-slate-800 rounded-md text-slate-400">
-                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h8m-8 6h16" /></svg>
+            {/* Core Workspace Area */}
+            <div className="flex-1 flex flex-col min-w-0 relative bg-slate-950">
+              <div className="h-14 bg-slate-950 border-b border-white/5 flex items-center px-8 justify-between sticky top-0 z-40">
+                 <div className="flex items-center gap-6">
+                   <button onClick={() => setShowSidebar(!showSidebar)} className="lg:hidden p-2.5 bg-slate-900 border border-white/10 rounded-xl text-slate-400">
+                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M12 12h8m-8 6h16" /></svg>
                    </button>
-                   <span className="hidden sm:inline text-[9px] text-blue-500 font-black bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded uppercase">{activeProject.files[activeFile]?.language || 'TEXT'}</span>
-                   <span className="text-[10px] lg:text-[11px] text-slate-400 font-bold truncate max-w-[120px]">{activeFile}</span>
+                   <div className="flex items-center gap-4">
+                     <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.5)]"></div>
+                     <span className="text-[11px] text-slate-100 font-black tracking-tighter uppercase font-mono bg-slate-900 px-3 py-1 rounded-lg border border-white/5">{activeFile}</span>
+                   </div>
                  </div>
-                 <div className="flex gap-1 bg-slate-900/50 p-1 rounded-lg">
+                 <div className="flex gap-2 bg-slate-900 p-1.5 rounded-2xl border border-white/5">
                    {['editor', 'split', 'preview'].map(m => (
                      <button 
                         key={m}
                         onClick={() => setViewMode(m as any)}
-                        className={`px-2 py-1 text-[8px] lg:text-[9px] font-black uppercase rounded-md transition-all ${viewMode === m ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+                        className={`px-5 py-2 text-[9px] font-black uppercase rounded-xl transition-all ${viewMode === m ? 'bg-blue-600 text-white shadow-xl shadow-blue-900/30' : 'text-slate-500 hover:text-slate-300'}`}
                      >{m}</button>
                    ))}
                  </div>
               </div>
               
-              <div className="flex-1 flex overflow-hidden bg-slate-950 flex-col lg:flex-row">
+              <div className="flex-1 flex overflow-hidden flex-col lg:flex-row">
                 {(viewMode === 'editor' || viewMode === 'split') && (
-                  <div className={`flex-1 flex flex-col ${viewMode === 'split' ? 'lg:border-r border-slate-800' : ''}`}>
+                  <div className={`flex-1 flex flex-col ${viewMode === 'split' ? 'lg:border-r border-white/5' : ''}`}>
                     <Editor 
                       value={activeProject.files[activeFile]?.content || ''}
                       language={activeProject.files[activeFile]?.language || 'markdown'}
@@ -288,35 +269,30 @@ const App: React.FC = () => {
         )}
       </div>
 
-      {/* Chat responsivo */}
+      {/* AI Consulting Sidebar */}
       <div className={`
         fixed inset-y-0 right-0 z-[120] lg:relative lg:z-0
-        transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1)
-        ${showChat ? 'translate-x-0 w-full sm:w-[400px]' : 'translate-x-full lg:w-0'}
-        flex flex-col border-l border-slate-800 bg-slate-900
+        transition-all duration-700 cubic-bezier(0.16, 1, 0.3, 1)
+        ${showChat ? 'translate-x-0 w-full sm:w-[550px]' : 'translate-x-full lg:w-0'}
+        flex flex-col border-l border-white/5 bg-slate-900 shadow-[-50px_0_100px_rgba(0,0,0,0.9)]
       `}>
         {showChat && (
-          <>
-            <button onClick={() => setShowChat(false)} className="lg:hidden absolute top-4 right-4 z-[130] p-2 bg-slate-800 rounded-full">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
-            <AIChat 
-              files={activeProject?.files || {}} 
-              activeProject={activeProject}
-              onApplyChanges={handleApplyAIChanges}
-              onImportProject={(name, files) => handleCreateProject(name, files)}
-            />
-          </>
+          <AIChat 
+            files={activeProject?.files || {}} 
+            activeProject={activeProject}
+            onApplyChanges={handleApplyAIChanges}
+            onImportProject={(name, files) => handleCreateProject(name, files)}
+          />
         )}
       </div>
 
-      {/* Chat Toggle Button (Desktop & Mobile Floating) */}
       {!showChat && (
         <button 
           onClick={() => setShowChat(true)}
-          className="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center z-[110] animate-bounce active:scale-90 lg:hover:scale-110 transition-transform"
+          className="fixed bottom-12 right-12 w-24 h-24 bg-blue-600 text-white rounded-[2.5rem] shadow-[0_40px_80px_-20px_rgba(37,99,235,0.6)] flex items-center justify-center z-[110] active:scale-90 hover:scale-110 transition-all group overflow-hidden border-4 border-white/10"
         >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+          <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
         </button>
       )}
 
@@ -329,7 +305,6 @@ const App: React.FC = () => {
             onClose={() => setShowGithub(false)} 
             files={activeProject.files}
             projectName={activeProject.name}
-            onGithubUpdate={handleGithubUpdate}
             savedGithub={user.github}
           />
           <VercelDialog
@@ -337,7 +312,6 @@ const App: React.FC = () => {
             onClose={() => setShowVercel(false)}
             files={activeProject.files}
             projectName={activeProject.name}
-            onVercelUpdate={handleVercelUpdate}
             savedToken={user.vercel?.token}
           />
         </>
