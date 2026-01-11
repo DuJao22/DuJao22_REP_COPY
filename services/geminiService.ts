@@ -2,50 +2,63 @@
 import { GoogleGenAI } from "@google/genai";
 import { ProjectFile, Project, AgentType } from "../types";
 
-const SYSTEM_PROMPT = `Você é o DUJÃO 22 ULTRA ENGINE, o engenheiro mais sênior da Digital Solutions.
-DIRETRIZES DE ENGENHARIA CRÍTICA:
-1. NÃO GERE CÓDIGO PARCIAL. Se o usuário pedir um E-commerce, você deve entregar o sistema COMPLETO (Admin, Catálogo, Carrinho, Checkout, API Fake).
-2. ESTRUTURA DE PASTAS OBRIGATÓRIA:
-   - templates/index.html (Contém o HTML/CSS/JS unificado para visualização instantânea).
-   - src/ (Lógica complementar).
-   - api/ (Endpoints e lógica de servidor).
-   - public/ (Assets).
-3. FUNCIONALIDADE TOTAL: O sistema deve rodar sem erros. Use <script src="https://cdn.tailwindcss.com"></script> sempre no HTML.
-4. NENHUM "TODO": É proibido usar comentários de "implemente aqui". Todo o código deve estar escrito.
+const SYSTEM_PROMPT = `Você é o OMNI-RESOLVER do DUJÃO 22. Sua missão é GARANTIR QUE O SISTEMA FUNCIONE.
 
-FORMATO DE RESPOSTA:
+REGRAS DE OURO (SEM EXCEÇÃO):
+1. PRIORIDADE ZERO: Se houver erros de "index.html não localizado" ou "falha de roteamento", você DEVE gerar o arquivo index.html na RAIZ do projeto imediatamente.
+2. ESTRUTURA REPLICÁVEL: Mantenha os arquivos críticos (index.html, script.js, style.css) preferencialmente na RAIZ para compatibilidade máxima com o preview.
+3. CÓDIGO AUTOSSUFICIENTE: Todo código gerado deve incluir as importações necessárias (ex: Tailwind CDN, Fontes Google).
+4. RESOLUÇÃO DE ERROS: Se receber logs de erro, analise a árvore de arquivos e corrija o código quebrado. Nunca peça para o usuário fazer nada, FAÇA VOCÊ MESMO.
+
+FORMATO DE RESPOSTA (ESTRITO):
 @@@FILE:caminho/do/arquivo.ext@@@
 CÓDIGO COMPLETO
 @@@ENDFILE@@@
 
-VERIFICAÇÃO: Ao final, confirme que a estrutura de pastas está correta e que o sistema foi auditado.`;
+CONTEXTO DE AGENTE:
+- Arquiteto: Foca em estrutura de pastas, manifestos e lógica de alto nível.
+- Desenvolvedor: Foca em implementação funcional, algoritmos e UI/UX.
+
+Você deve ser capaz de resolver QUALQUER problema técnico apenas manipulando os arquivos.`;
 
 export async function askAI(prompt: string, project: Project | null, agent: AgentType = 'developer') {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const model = 'gemini-3-pro-preview';
   
-  let context = "Iniciando solução Enterprise de ponta a ponta.";
-  if (project) {
-    const filesContext = Object.values(project.files)
-      .map((f: ProjectFile) => `PATH: ${f.name}\nCONTENT:\n${f.content}`)
-      .join('\n\n---\n\n');
-    context = `SISTEMA ATUAL:\n${project.name}\nARQUIVOS:\n${filesContext}`;
+  let filesContext = "Nenhum arquivo no sistema.";
+  if (project && project.files) {
+    filesContext = Object.values(project.files)
+      .map((f: ProjectFile) => `CAMINHO: ${f.name}\nLINGUAGEM: ${f.language}\n---CONTEÚDO---\n${f.content}\n---FIM---`)
+      .join('\n\n');
   }
+
+  const finalPrompt = `
+  ESTADO ATUAL DO PROJETO:
+  Nome: ${project?.name || "Novo Sistema"}
+  Árvore de Arquivos:
+  ${filesContext}
+
+  SOLICITAÇÃO DO USUÁRIO OU ERRO DE SISTEMA:
+  ${prompt}
+
+  Sua tarefa: Analise o erro acima, olhe para os arquivos atuais e forneça os arquivos CORRIGIDOS ou NOVOS seguindo o formato @@@FILE:path@@@.
+  Se o index.html estiver faltando, CRIE-O AGORA.
+  `;
 
   try {
     const response = await ai.models.generateContent({
       model,
-      contents: `SOLICITAÇÃO: ${prompt}\n\n${context}\n\nLembre-se: Crie a estrutura completa com a pasta templates/ e sistema 100% funcional.`,
+      contents: finalPrompt,
       config: {
         systemInstruction: SYSTEM_PROMPT,
-        temperature: 0.1,
+        temperature: 0.2,
         thinkingConfig: { thinkingBudget: 32768 }
       },
     });
 
     return response.text;
   } catch (error: any) {
-    console.error("Critical AI Failure:", error);
-    return "FALHA NO NÚCLEO: O cluster de arquitetura não respondeu.";
+    console.error("AI Engine Failure:", error);
+    return `@@@FILE:error_log.txt@@@\nErro crítico na comunicação com o núcleo: ${error.message}\n@@@ENDFILE@@@`;
   }
 }
